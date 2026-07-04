@@ -1,0 +1,15 @@
+{
+  "username": "piyush",
+  "email": "gupta@gmail.com",
+  "password": "123456"
+}
+
+{
+  "username": "piyush",
+  "email": "piyush@gmail.com",
+  "password": "123456"
+}
+
+rahul123 username
+rahul@gmail.com gmail
+password": "123456"

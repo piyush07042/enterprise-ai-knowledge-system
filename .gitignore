@@ -1,0 +1,26 @@
+# Virtual environments
+venv/
+backend/venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Database
+*.db
+
+# Uploads
+backend/uploads/
+
+# Chroma
+backend/chroma_db/
+
+# VS Code
+.vscode/
