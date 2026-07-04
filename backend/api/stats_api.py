@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from auth.dependencies import verify_token
 from database.db import get_db
 from sqlalchemy.orm import Session
+from models.document import Document
 from models.history import History
 import os
 
@@ -19,11 +20,9 @@ def dashboard_stats(
     db: Session = Depends(get_db)
 ):
     try:
-        user_folder = os.path.join(BASE_UPLOAD_FOLDER, user.email)
-
-        documents = 0
-        if os.path.exists(user_folder):
-            documents = len(os.listdir(user_folder))
+        documents = db.query(Document).filter(
+            Document.user_id == user.id
+        ).count()
 
         # Approx vector chunks estimate
         vectors = documents * 15

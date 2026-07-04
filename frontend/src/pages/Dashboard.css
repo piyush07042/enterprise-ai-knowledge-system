@@ -111,6 +111,13 @@ body.light-mode {
   align-items: center;
   background: #2563eb;
   color: white;
+  overflow: hidden;
+  object-fit: cover;
+}
+
+.avatar-image {
+  padding: 0;
+  border: 3px solid rgba(255, 255, 255, 0.12);
 }
 
 .stats {

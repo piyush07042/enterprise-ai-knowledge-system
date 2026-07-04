@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -24,3 +24,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_user_profile_picture_column():
+    inspector = inspect(engine)
+    columns = {column["name"] for column in inspector.get_columns("users")}
+
+    if "profile_picture_path" in columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE users ADD COLUMN profile_picture_path TEXT"))

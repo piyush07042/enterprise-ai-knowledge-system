@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [username, setUsername] = useState("User");
   const [lightMode, setLightMode] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+  const [profilePictureSrc, setProfilePictureSrc] = useState(null);
 
   const [stats, setStats] = useState({
     documents: 0,
@@ -25,11 +26,43 @@ export default function Dashboard() {
       await fetchUser();
       await fetchDocuments();
       await fetchStats();
+      await fetchHistoryCount();
       setPageLoading(false);
     };
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (profilePictureSrc) {
+        URL.revokeObjectURL(profilePictureSrc);
+      }
+    };
+  }, [profilePictureSrc]);
+
+  const loadProfilePicture = async (profilePictureUrl) => {
+    try {
+      if (profilePictureSrc) {
+        URL.revokeObjectURL(profilePictureSrc);
+        setProfilePictureSrc(null);
+      }
+
+      const token = localStorage.getItem("token");
+      const res = await api.get(profilePictureUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: "blob",
+      });
+
+      const objectUrl = URL.createObjectURL(res.data);
+      setProfilePictureSrc(objectUrl);
+    } catch (err) {
+      console.log(err);
+      setProfilePictureSrc(null);
+    }
+  };
 
   const fetchUser = async () => {
     try {
@@ -42,6 +75,11 @@ export default function Dashboard() {
       });
 
       setUsername(res.data.username || "User");
+      if (res.data.profile_picture_url) {
+        await loadProfilePicture(res.data.profile_picture_url);
+      } else {
+        setProfilePictureSrc(null);
+      }
     } catch (err) {
       console.log(err);
     }
@@ -73,7 +111,33 @@ export default function Dashboard() {
         },
       });
 
-      setStats(res.data);
+      setStats((prev) => ({
+        ...prev,
+        ...res.data,
+        documents: Number(res.data?.documents ?? prev.documents ?? 0),
+        vectors: Number(res.data?.vectors ?? prev.vectors ?? 0),
+        queries: Number(res.data?.queries ?? prev.queries ?? 0),
+        history: Number(res.data?.history ?? prev.history ?? 0),
+      }));
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const fetchHistoryCount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await api.get("/history", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setStats((prev) => ({
+        ...prev,
+        history: Array.isArray(res.data) ? res.data.length : 0,
+      }));
     } catch (err) {
       console.log(err);
     }
@@ -130,9 +194,17 @@ export default function Dashboard() {
               {lightMode ? "🌙" : "☀"}
             </button>
 
-            <div className="avatar">
-              {username.charAt(0).toUpperCase()}
-            </div>
+            {profilePictureSrc ? (
+              <img
+                className="avatar avatar-image"
+                src={profilePictureSrc}
+                alt="Profile"
+              />
+            ) : (
+              <div className="avatar">
+                {username.charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
         </header>
 
@@ -154,7 +226,7 @@ export default function Dashboard() {
 
           <div className="card">
             <h3>History</h3>
-            <p className="stat-number">{stats.history}</p>
+            <p className="stat-number">{stats.history ?? 0}</p>
           </div>
         </div>
 

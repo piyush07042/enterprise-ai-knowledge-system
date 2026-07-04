@@ -10,3 +10,4 @@ class User(Base):
     username = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
+    profile_picture_path = Column(String, nullable=True)

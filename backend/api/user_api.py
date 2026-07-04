@@ -67,5 +67,6 @@ def get_current_user(
     return {
         "id": user.id,
         "username": user.username,
-        "email": user.email
+        "email": user.email,
+        "profile_picture_url": "/profile-picture" if user.profile_picture_path else None
     }

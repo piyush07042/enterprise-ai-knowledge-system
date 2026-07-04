@@ -40,6 +40,15 @@ def store_document(user_id, filename, text):
     )
 
 
+def delete_document_chunks(user_id, filename):
+    collection.delete(
+        where={
+            "user_id": str(user_id),
+            "filename": filename,
+        }
+    )
+
+
 def search_documents(user_id, query):
     query_embedding = model.encode([query]).tolist()[0]
 

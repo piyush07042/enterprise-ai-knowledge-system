@@ -6,12 +6,21 @@ import api from "../services/api";
 export default function FilesPage() {
   const [documents, setDocuments] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchDocs();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const fetchDocs = async () => {
     try {
@@ -29,26 +38,47 @@ export default function FilesPage() {
     }
   };
 
-  const previewFile = (filename) => {
-    const token = localStorage.getItem("token");
+  const previewFile = async (filename) => {
+    try {
+      const token = localStorage.getItem("token");
 
-    setSelectedFile(
-      `http://127.0.0.1:8000/open-file/${encodeURIComponent(
-        filename
-      )}?token=${token}`
-    );
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      const res = await api.get(
+        `/documents/${encodeURIComponent(filename)}/preview`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          responseType: "blob",
+        }
+      );
+
+      const url = URL.createObjectURL(res.data);
+      setPreviewUrl(url);
+      setSelectedFile(url);
+    } catch (err) {
+      console.log(err);
+      alert("Preview failed");
+    }
   };
 
   const deleteFile = async (filename) => {
     try {
       const token = localStorage.getItem("token");
 
-      await api.delete(`/delete-file/${filename}`, {
+      await api.delete(`/delete-file/${encodeURIComponent(filename)}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
       setSelectedFile(null);
       fetchDocs();
     } catch (err) {
