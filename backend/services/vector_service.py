@@ -46,17 +46,38 @@ def tokenize(text):
     return tokens
 
 
-def format_result(doc, meta, distance=None):
+def build_source_object(doc, meta, distance=None):
+    """
+    Build a structured source citation object from a ChromaDB result.
+
+    Returns a dict with:
+      - filename   : source document name
+      - chunk_index: which chunk within the document
+      - score      : float [0, 1] derived from L2 distance, or None if unavailable
+      - preview    : truncated text for UI display (≤ 200 chars)
+      - text       : full raw chunk text used to build the LLM context string
+                     (stripped before returning to the API layer)
+    """
     filename = meta.get("filename", "Unknown document")
     chunk_index = meta.get("chunk_index", 0)
-    score_line = f"Distance: {distance:.4f}" if isinstance(distance, float) else "Distance: n/a"
 
-    return (
-        f"Source: {filename}\n"
-        f"Chunk: {chunk_index}\n"
-        f"{score_line}\n"
-        f"Content:\n{doc}"
-    )
+    score = None
+    if isinstance(distance, float):
+        # ChromaDB returns L2 distances; convert to similarity score [0, 1]
+        score = round(max(0.0, 1.0 - distance / 2.0), 4)
+
+    full_text = (doc or "").strip()
+    preview = full_text[:200]
+    if len(full_text) > 200:
+        preview = preview.rstrip() + "..."
+
+    return {
+        "filename": filename,
+        "chunk_index": chunk_index,
+        "score": score,
+        "preview": preview,
+        "text": full_text,  # internal only — stripped by caller before API response
+    }
 
 
 def user_id_values(user_id):
@@ -176,6 +197,15 @@ def delete_document_chunks(user_id, filename):
 
 
 def search_documents(user_id, query, limit=8):
+    """
+    Search for document chunks relevant to the query.
+
+    Returns a list of structured source objects (see build_source_object).
+    Each object contains: filename, chunk_index, score, preview, text.
+
+    The 'text' field holds the full raw chunk for LLM context building.
+    The caller (search_service.py) must strip 'text' before returning to the API.
+    """
     cleaned_query = clean_text(query)
 
     if not cleaned_query:
@@ -248,8 +278,8 @@ def search_documents(user_id, query, limit=8):
         if isinstance(distance, float):
             vector_score = max(0, 3 - distance)
 
-        score = vector_score + lexical_score(query_tokens, query_text, doc, meta)
-        candidates[key] = (score, doc, meta, distance)
+        combined_score = vector_score + lexical_score(query_tokens, query_text, doc, meta)
+        candidates[key] = (combined_score, doc, meta, distance)
 
     user_chunks = get_user_chunks(user_id)
 
@@ -260,13 +290,13 @@ def search_documents(user_id, query, limit=8):
         filename = meta.get("filename", "Unknown document")
         chunk_index = meta.get("chunk_index", 0)
         key = (filename, chunk_index, doc[:120])
-        score = lexical_score(query_tokens, query_text, doc, meta)
+        lex_score = lexical_score(query_tokens, query_text, doc, meta)
 
-        if score <= 0:
+        if lex_score <= 0:
             continue
 
-        if key not in candidates or candidates[key][0] < score:
-            candidates[key] = (score, doc, meta, None)
+        if key not in candidates or candidates[key][0] < lex_score:
+            candidates[key] = (lex_score, doc, meta, None)
 
     ranked_candidates = sorted(
         candidates.values(),
@@ -274,9 +304,8 @@ def search_documents(user_id, query, limit=8):
         reverse=True
     )
 
-    filtered_docs = [
-        format_result(doc, meta, distance)
+    # Return structured source objects instead of formatted strings
+    return [
+        build_source_object(doc, meta, distance)
         for _, doc, meta, distance in ranked_candidates[:limit]
     ]
-
-    return filtered_docs

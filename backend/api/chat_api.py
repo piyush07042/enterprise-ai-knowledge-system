@@ -130,12 +130,17 @@ def send_message(
     if chat.title == "New Chat":
         chat.title = text[:60]
 
-    answer = answer_from_documents(
+    # answer_from_documents returns {"answer": "...", "sources": [...]}
+    # Sources are ephemeral — returned in the response but NOT persisted to the DB.
+    result = answer_from_documents(
         user=user,
         db=db,
         query=text,
         conversation_context=conversation_context
     )
+
+    answer = result["answer"]
+    sources = result.get("sources", [])
 
     assistant_message = ChatMessage(
         chat_id=chat.id,
@@ -153,7 +158,9 @@ def send_message(
     return {
         "chat": serialize_chat(chat),
         "user_message": serialize_message(user_message),
-        "assistant_message": serialize_message(assistant_message)
+        "assistant_message": serialize_message(assistant_message),
+        # Citations are ephemeral — not stored in DB, returned only at send time.
+        "sources": sources,
     }
 
 

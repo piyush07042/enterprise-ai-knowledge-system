@@ -149,14 +149,22 @@
 
 .chat-message-row {
   display: flex;
+  flex-direction: column;
 }
 
 .chat-message-row.user {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 .chat-message-row.assistant {
-  justify-content: flex-start;
+  align-items: flex-start;
+  max-width: min(820px, 90%);
+}
+
+/* Citation card scoped to assistant rows — inherits the row's max-width */
+.chat-message-row.assistant .citation-card {
+  width: 100%;
+  margin-top: 10px;
 }
 
 .chat-bubble {

@@ -43,6 +43,37 @@ def is_all_documents_query(query):
     )
 
 
+def _strip_text_field(sources):
+    """
+    Remove the internal 'text' field from source objects before returning to the API.
+    The 'text' field is only used internally to build LLM context strings.
+    """
+    return [
+        {
+            "filename": s["filename"],
+            "chunk_index": s["chunk_index"],
+            "score": s["score"],
+            "preview": s["preview"],
+        }
+        for s in sources
+    ]
+
+
+def _build_rag_context(sources):
+    """
+    Build the context string for the LLM from structured source objects.
+    Uses the full 'text' field (not the truncated 'preview').
+    """
+    parts = []
+    for s in sources:
+        parts.append(
+            f"Source: {s['filename']}\n"
+            f"Chunk: {s['chunk_index']}\n"
+            f"Content:\n{s['text']}"
+        )
+    return "\n\n".join(parts)
+
+
 def get_all_user_document_context(user, db):
     sync_user_upload_documents(user, db)
     db.flush()
@@ -73,6 +104,25 @@ def get_all_user_document_context(user, db):
 
 
 def answer_from_documents(user, db, query, conversation_context=None):
+    """
+    Run the RAG pipeline and return a structured result:
+
+        {
+            "answer": "...",
+            "sources": [
+                {
+                    "filename": "resume.pdf",
+                    "chunk_index": 3,
+                    "score": 0.91,       # None for all-documents path
+                    "preview": "..."
+                },
+                ...
+            ]
+        }
+
+    The 'sources' list is safe for direct API serialisation — the internal
+    'text' field used for LLM context is stripped before returning.
+    """
 
     # ----------- SUMMARIZE ALL DOCUMENTS -----------
     if is_all_documents_query(query):
@@ -81,9 +131,9 @@ def answer_from_documents(user, db, query, conversation_context=None):
 
         if not filenames:
             answer = "No uploaded documents found."
+            api_sources = []
 
         else:
-
             question = f"""
 The user asked:
 
@@ -104,6 +154,18 @@ Instructions:
 
             answer = generate_answer(context, question)
 
+            # For the all-documents path there is no vector similarity —
+            # score is None and confidence will display as "All Documents".
+            api_sources = [
+                {
+                    "filename": filename,
+                    "chunk_index": 0,
+                    "score": None,
+                    "preview": "",
+                }
+                for filename in filenames
+            ]
+
         query_counts[user.email] = query_counts.get(user.email, 0) + 1
 
         history = History(
@@ -111,10 +173,9 @@ Instructions:
             answer=answer,
             user_id=user.id
         )
-
         db.add(history)
 
-        return answer
+        return {"answer": answer, "sources": api_sources}
 
     # ----------- NORMAL RAG SEARCH -----------
 
@@ -125,14 +186,16 @@ Instructions:
             f"{query}\n\nRecent conversation:\n{conversation_context}"
         )
 
-    docs = search_documents(user.id, retrieval_query)
+    # search_documents now returns structured source objects
+    sources = search_documents(user.id, retrieval_query)
 
-    if not docs:
+    if not sources:
         answer = "No relevant document found."
+        api_sources = []
 
     else:
-
-        context = "\n\n".join(docs[:5])
+        # Build LLM context from full text (uses internal 'text' field)
+        context = _build_rag_context(sources[:5])
 
         question = query
 
@@ -149,6 +212,9 @@ Current Question:
 
         answer = generate_answer(context, question)
 
+        # Strip internal 'text' field — safe for API serialisation
+        api_sources = _strip_text_field(sources[:5])
+
     query_counts[user.email] = query_counts.get(user.email, 0) + 1
 
     history = History(
@@ -156,7 +222,6 @@ Current Question:
         answer=answer,
         user_id=user.id
     )
-
     db.add(history)
 
-    return answer
+    return {"answer": answer, "sources": api_sources}

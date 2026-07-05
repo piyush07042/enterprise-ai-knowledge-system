@@ -25,13 +25,15 @@ def search(
         print("USER ID:", user.id)
         print("QUERY:", request.query)
 
-        answer = answer_from_documents(user, db, request.query)
+        # answer_from_documents now returns {"answer": "...", "sources": [...]}
+        result = answer_from_documents(user, db, request.query)
         db.commit()
 
         print("ANSWER GENERATED")
+        print("SOURCES COUNT:", len(result.get("sources", [])))
         print("========== SEARCH END ==========")
 
-        return {"answer": answer}
+        return result
 
     except Exception as e:
         print("SEARCH ERROR:")

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import CitationCard from "../components/CitationCard";
 import "./ChatPage.css";
 
 export default function ChatPage() {
@@ -60,7 +61,10 @@ export default function ChatPage() {
       });
 
       setActiveChat(res.data);
-      setMessages(res.data.messages || []);
+      // Loaded messages have no sources (ephemeral) — sources are null by default
+      setMessages(
+        (res.data.messages || []).map((msg) => ({ ...msg, sources: null }))
+      );
     } catch (err) {
       setError("Unable to open chat");
     }
@@ -111,6 +115,11 @@ export default function ChatPage() {
     }
   };
 
+  /**
+   * Simulate streaming for the assistant reply.
+   * The message object may carry a `sources` array which is preserved
+   * throughout the streaming animation so CitationCard can render.
+   */
   const streamAssistantMessage = (message) => {
     let index = 0;
     const fullText = message.content || "";
@@ -121,6 +130,7 @@ export default function ChatPage() {
       {
         ...message,
         content: "",
+        // sources are attached to the message object from the caller
       },
     ]);
 
@@ -162,6 +172,7 @@ export default function ChatPage() {
       id: `local-${Date.now()}`,
       role: "user",
       content: text,
+      sources: null,
     };
 
     setMessages((current) => [...current, optimisticMessage]);
@@ -175,9 +186,12 @@ export default function ChatPage() {
         }
       );
 
+      // Replace the optimistic user message with the persisted one
       setMessages((current) =>
         current.map((message) =>
-          message.id === optimisticMessage.id ? res.data.user_message : message
+          message.id === optimisticMessage.id
+            ? { ...res.data.user_message, sources: null }
+            : message
         )
       );
 
@@ -192,7 +206,14 @@ export default function ChatPage() {
         return [updatedChat, ...withoutUpdated];
       });
 
-      streamAssistantMessage(res.data.assistant_message);
+      // Attach ephemeral sources to the assistant message object.
+      // They will be preserved through the streaming animation.
+      const assistantMessageWithSources = {
+        ...res.data.assistant_message,
+        sources: Array.isArray(res.data.sources) ? res.data.sources : [],
+      };
+
+      streamAssistantMessage(assistantMessageWithSources);
     } catch (err) {
       setMessages((current) =>
         current.filter((message) => message.id !== optimisticMessage.id)
@@ -259,6 +280,13 @@ export default function ChatPage() {
                   <p>{message.content}</p>
                   {streamingId === message.id && <span className="typing-cursor" />}
                 </div>
+
+                {/* Show citations only for assistant messages that have sources */}
+                {message.role === "assistant" &&
+                  Array.isArray(message.sources) &&
+                  message.sources.length > 0 && (
+                    <CitationCard sources={message.sources} />
+                  )}
               </div>
             ))
           )}
