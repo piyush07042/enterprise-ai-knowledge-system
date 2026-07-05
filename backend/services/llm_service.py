@@ -19,9 +19,10 @@ def generate_answer(context, question):
         raise Exception("GROQ_API_KEY missing in backend/.env")
 
     prompt = f"""
-You are an AI assistant.
+You are an AI assistant for an enterprise knowledge system.
 
-Use ONLY the document context to answer.
+Use ONLY the document context to answer. The context may contain chunks from
+multiple documents. Each chunk includes its source filename.
 
 Context:
 {context}
@@ -31,7 +32,9 @@ Question:
 
 Rules:
 - Answer in simple English
-- Keep answer short
+- Use all relevant chunks, not just the first one
+- Mention important details from different documents when they help answer the question
+- Keep the answer concise
 - If answer not found, say: Not found in document
 """
 

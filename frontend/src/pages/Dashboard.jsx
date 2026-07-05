@@ -145,6 +145,7 @@ export default function Dashboard() {
 
   const goToUpload = () => navigate("/upload");
   const goToSearch = () => navigate("/search");
+  const goToChat = () => navigate("/chat");
   const goToFiles = () => navigate("/files");
   const goToSettings = () => navigate("/settings");
   const goToHistory = () => navigate("/history");
@@ -173,6 +174,7 @@ export default function Dashboard() {
         </div>
 
         <nav>
+          <button onClick={goToChat}>Chat</button>
           <button onClick={goToUpload}>📤 Upload Documents</button>
           <button onClick={goToSearch}>🔍 AI Search</button>
           <button onClick={goToFiles}>📄 Files</button>

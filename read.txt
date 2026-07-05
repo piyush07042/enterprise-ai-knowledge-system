@@ -1,0 +1,47 @@
+(.venv) PS D:\enterprise> cd D:\enterprise\enterprise-ai-knowledge-system
+(.venv) PS D:\enterprise\enterprise-ai-knowledge-system> dir 
+
+
+    Directory: D:\enterprise\enterprise-ai-knowledge-system
+
+
+Mode                 LastWriteTime         Length Name     
+----                 -------------         ------ ----     
+d-----        04-07-2026     17:37                backend  
+d-----        10-06-2026     11:50                docs     
+d-----        04-07-2026     16:56                frontend 
+d-----        11-06-2026     12:22                venv     
+-a----        24-06-2026     02:23            140 .env     
+-a----        04-07-2026     16:25            262 .gitignor
+                                                  e        
+-a----        04-07-2026     16:14           1338 PROJECT_C
+                                                  ONTEXT.md
+-a----        04-07-2026     16:13            791 README.md
+
+
+(.venv) PS D:\enterprise\enterprise-ai-knowledge-system> cd D:\enterprise\enterprise-ai-knowledge-system\backend
+(.venv) PS D:\enterprise\enterprise-ai-knowledge-system\backend> venv\Scripts\activate
+(venv) PS D:\enterprise\enterprise-ai-knowledge-system\backend> uvicorn main:app --reload
+
+INFO:     Will watch for changes in these directories: ['D:\\enterprise\\enterprise-ai-knowledge-system\\backend']
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights: 100%|██████████| 103/103 [00:00<00:00, 2535.83it/s]
+GROQ KEY FOUND: True
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [19832] using WatchFiles
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights: 100%|██████████| 103/103 [00:00<00:00, 1281.96it/s]
+GROQ KEY FOUND: True
+INFO:     Started server process [21888]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+
+
+
+frontend
+$env:Path += ";D:\nodejs"
+node -v
+npm -v
+cd D:\enterprise\enterprise-ai-knowledge-system\frontend
+npm install
+npm run dev

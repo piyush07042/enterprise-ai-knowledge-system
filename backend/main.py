@@ -15,6 +15,8 @@ from models.history import History
 from api.history_api import router as history_router
 from models.password_otp import PasswordResetOTP
 from api.password_api import router as password_router
+from models.chat import Chat, ChatMessage
+from api.chat_api import router as chat_router
 
 app = FastAPI(
     title="Enterprise AI Knowledge System"
@@ -38,6 +40,8 @@ Document.metadata.create_all(bind=engine)
 History.metadata.create_all(bind=engine)
 ensure_user_profile_picture_column()
 PasswordResetOTP.metadata.create_all(bind=engine)
+Chat.metadata.create_all(bind=engine)
+ChatMessage.metadata.create_all(bind=engine)
 
 @app.get("/")
 def root():
@@ -53,3 +57,4 @@ app.include_router(settings_router)
 app.include_router(stats_router)
 app.include_router(history_router)
 app.include_router(password_router)
+app.include_router(chat_router, tags=["Chat"])

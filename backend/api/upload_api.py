@@ -9,8 +9,9 @@ from auth.security import SECRET_KEY, ALGORITHM
 from database.db import get_db
 from models.document import Document
 from services.vector_service import store_document, delete_document_chunks
+from services.pdf_service import extract_pdf_text
+from services.document_sync_service import sync_user_upload_documents
 from utils.file_paths import resolve_user_upload_path, sanitize_filename
-from pypdf import PdfReader
 
 router = APIRouter()
 
@@ -47,12 +48,7 @@ async def upload_file(
         text = ""
 
         if file.filename.lower().endswith(".pdf"):
-            reader = PdfReader(file_path)
-
-            for page in reader.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text
+            text = extract_pdf_text(file_path)
 
         elif file.filename.lower().endswith(".txt"):
             with open(file_path, "r", encoding="utf-8") as f:
@@ -104,8 +100,14 @@ async def upload_file(
 
 
 @router.get("/documents")
-def get_documents(user=Depends(verify_token)):
+def get_documents(
+    user=Depends(verify_token),
+    db: Session = Depends(get_db)
+):
     try:
+        sync_user_upload_documents(user, db)
+        db.commit()
+
         user_folder = os.path.join(BASE_UPLOAD_FOLDER, user.email)
 
         if not os.path.exists(user_folder):
