@@ -35,3 +35,16 @@ def ensure_user_profile_picture_column():
 
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE users ADD COLUMN profile_picture_path TEXT"))
+
+
+def ensure_history_columns():
+    inspector = inspect(engine)
+    columns = {column["name"] for column in inspector.get_columns("history")}
+
+    with engine.begin() as connection:
+        if "latency" not in columns:
+            connection.execute(text("ALTER TABLE history ADD COLUMN latency REAL"))
+        if "confidence" not in columns:
+            connection.execute(text("ALTER TABLE history ADD COLUMN confidence REAL"))
+        if "retrieved_docs" not in columns:
+            connection.execute(text("ALTER TABLE history ADD COLUMN retrieved_docs TEXT"))

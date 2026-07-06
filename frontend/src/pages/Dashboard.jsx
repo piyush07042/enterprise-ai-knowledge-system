@@ -12,12 +12,16 @@ export default function Dashboard() {
   const [pageLoading, setPageLoading] = useState(true);
   const [profilePictureSrc, setProfilePictureSrc] = useState(null);
 
-  const [stats, setStats] = useState({
-    documents: 0,
-    vectors: 0,
-    queries: 0,
-    history: 0,
-  });
+const [stats, setStats] = useState({
+  documents: 0,
+  vectors: 0,
+  queries: 0,
+  history: 0,
+  avg_latency: 0,
+  avg_confidence: 0,
+  most_searched_doc: "N/A",
+  top_keyword: "N/A",
+});
 
   const navigate = useNavigate();
 
@@ -102,46 +106,75 @@ export default function Dashboard() {
   };
 
   const fetchStats = async () => {
-    try {
-      const token = localStorage.getItem("token");
+  try {
+    const token = localStorage.getItem("token");
 
-      const res = await api.get("/dashboard-stats", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    const res = await api.get("/dashboard-stats", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      setStats((prev) => ({
-        ...prev,
-        ...res.data,
-        documents: Number(res.data?.documents ?? prev.documents ?? 0),
-        vectors: Number(res.data?.vectors ?? prev.vectors ?? 0),
-        queries: Number(res.data?.queries ?? prev.queries ?? 0),
-        history: Number(res.data?.history ?? prev.history ?? 0),
-      }));
-    } catch (err) {
-      console.log(err);
-    }
-  };
+    setStats({
+      documents: Number(res.data.documents || 0),
+      vectors: Number(res.data.vectors || 0),
+      queries: Number(res.data.queries || 0),
+      history: Number(res.data.history || 0),
+      avg_latency: res.data.avg_latency || 0,
+      avg_confidence: res.data.avg_confidence || 0,
+      most_searched_doc: res.data.most_searched_doc || "N/A",
+      top_keyword: res.data.top_keyword || "N/A",
+    });
+  } catch (err) {
+    console.log(err);
+  }
+};
+      
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await api.get("/dashboard-stats", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    setStats({
+      documents: Number(res.data.documents || 0),
+      vectors: Number(res.data.vectors || 0),
+      queries: Number(res.data.queries || 0),
+      history: Number(res.data.history || 0),
+      avg_latency: res.data.avg_latency || 0,
+      avg_confidence: res.data.avg_confidence || 0,
+      most_searched_doc: res.data.most_searched_doc || "N/A",
+      top_keyword: res.data.top_keyword || "N/A",
+    });
+  } catch (err) {
+    console.log(err);
+  }
+;
+
+const fetchHistoryCount = async () => {
+  try {
 
   const fetchHistoryCount = async () => {
-    try {
-      const token = localStorage.getItem("token");
+  try {
+    const token = localStorage.getItem("token");
 
-      const res = await api.get("/history", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    const res = await api.get("/history", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      setStats((prev) => ({
-        ...prev,
-        history: Array.isArray(res.data) ? res.data.length : 0,
-      }));
-    } catch (err) {
-      console.log(err);
-    }
-  };
+    setStats((prev) => ({
+      ...prev,
+      history: Array.isArray(res.data) ? res.data.length : 0,
+    }));
+  } catch (err) {
+    console.log(err);
+  }
+};
 
   const goToUpload = () => navigate("/upload");
   const goToSearch = () => navigate("/search");
@@ -210,28 +243,29 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="stats">
-          <div className="card">
-            <h3>Documents</h3>
-            <p className="stat-number">{stats.documents}</p>
-          </div>
+        <div className="card">
+  <h3>Avg Latency</h3>
+  <p className="stat-number">
+    {stats.avg_latency.toFixed(2)} s
+  </p>
+</div>
 
-          <div className="card">
-            <h3>Vectors</h3>
-            <p className="stat-number">{stats.vectors}</p>
-          </div>
+<div className="card">
+  <h3>Confidence</h3>
+  <p className="stat-number">
+    {stats.avg_confidence}%
+  </p>
+</div>
 
-          <div className="card">
-            <h3>Queries</h3>
-            <p className="stat-number">{stats.queries}</p>
-          </div>
+<div className="card">
+  <h3>Top Document</h3>
+  <p>{stats.most_searched_doc}</p>
+</div>
 
-          <div className="card">
-            <h3>History</h3>
-            <p className="stat-number">{stats.history ?? 0}</p>
-          </div>
-        </div>
-
+<div className="card">
+  <h3>Top Keyword</h3>
+  <p>{stats.top_keyword}</p>
+</div>
         <div className="documents">
           <h2>Recent Documents</h2>
 
@@ -256,4 +290,4 @@ export default function Dashboard() {
       </main>
     </div>
   );
-}
+} 

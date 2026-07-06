@@ -1,5 +1,6 @@
 import chromadb
 import re
+import math
 from sentence_transformers import SentenceTransformer
 from services.text_chunker import chunk_text
 
@@ -62,9 +63,9 @@ def build_source_object(doc, meta, distance=None):
     chunk_index = meta.get("chunk_index", 0)
 
     score = None
-    if isinstance(distance, float):
-        # ChromaDB returns L2 distances; convert to similarity score [0, 1]
-        score = round(max(0.0, 1.0 - distance / 2.0), 4)
+    if isinstance(distance, (int, float)):
+        # Convert L2 distance into intuitive confidence percentage [0, 1]
+        score = round(1.0 / (1.0 + distance), 4)
 
     full_text = (doc or "").strip()
     preview = full_text[:200]
@@ -104,7 +105,8 @@ def get_user_chunks(user_id, include=None):
     chunks = {
         "ids": [],
         "documents": [],
-        "metadatas": []
+        "metadatas": [],
+        "embeddings": []
     }
 
     for value in user_id_values(user_id):
@@ -116,7 +118,8 @@ def get_user_chunks(user_id, include=None):
         )
 
         for key in chunks:
-            chunks[key].extend(result.get(key, []))
+            if key in result and result[key] is not None:
+                chunks[key].extend(result.get(key, []))
 
     return chunks
 
@@ -196,34 +199,113 @@ def delete_document_chunks(user_id, filename):
         )
 
 
-def search_documents(user_id, query, limit=8):
+def expand_query(query):
     """
-    Search for document chunks relevant to the query.
+    Automatically expand user query with synonyms/related keywords using Groq.
+    """
+    from services.llm_service import client as groq_client
+    if not groq_client:
+        return query
+    try:
+        prompt = f"""You are a search query optimizer for an enterprise search system.
+Expand the following user query with 3-5 relevant keywords, synonyms, and related search terms to improve retrieval.
+Do not return any explanations, punctuation, or preamble. Return only the space-separated list of keywords.
 
-    Returns a list of structured source objects (see build_source_object).
-    Each object contains: filename, chunk_index, score, preview, text.
+Query: {query}
+Keywords:"""
+        response = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.1,
+            max_tokens=50
+        )
+        expanded_keywords = response.choices[0].message.content.strip()
+        print(f"Original Query: '{query}' -> Expanded Keywords: '{expanded_keywords}'")
+        return f"{query} {expanded_keywords}"
+    except Exception as e:
+        print("Query expansion error:", e)
+        return query
 
-    The 'text' field holds the full raw chunk for LLM context building.
-    The caller (search_service.py) must strip 'text' before returning to the API.
+
+def calculate_bm25_scores(query_text, documents):
+    """
+    Compute BM25 scores for a list of documents relative to the query text.
+    """
+    def get_tokens(text):
+        return re.findall(r"[a-z0-9]+", (text or "").lower())
+
+    query_tokens = [t for t in get_tokens(query_text) if len(t) > 1]
+    if not query_tokens:
+        return [0.0] * len(documents)
+
+    N = len(documents)
+    if N == 0:
+        return []
+
+    doc_tokens_lists = [get_tokens(doc) for doc in documents]
+    doc_lengths = [len(tokens) for tokens in doc_tokens_lists]
+    avgdl = sum(doc_lengths) / N if N > 0 else 1.0
+
+    # Calculate doc term frequencies
+    doc_tfs = []
+    for tokens in doc_tokens_lists:
+        tf = {}
+        for token in tokens:
+            tf[token] = tf.get(token, 0) + 1
+        doc_tfs.append(tf)
+
+    # Calculate n(q)
+    nq = {}
+    for token in query_tokens:
+        nq[token] = sum(1 for tf in doc_tfs if token in tf)
+
+    # Calculate IDF
+    idf = {}
+    for token in query_tokens:
+        count = nq[token]
+        idf[token] = math.log((N - count + 0.5) / (count + 0.5) + 1.0)
+
+    # Calculate scores
+    k1 = 1.5
+    b = 0.75
+    scores = []
+    for idx, tf in enumerate(doc_tfs):
+        score = 0.0
+        doc_len = doc_lengths[idx]
+        for token in query_tokens:
+            if token in tf:
+                freq = tf[token]
+                num = freq * (k1 + 1)
+                den = freq + k1 * (1 - b + b * (doc_len / avgdl))
+                score += idf[token] * (num / den)
+        scores.append(score)
+    return scores
+
+
+def search_documents(user_id, query, limit=5):
+    """
+    Perform hybrid search (Chroma + BM25) and fuse results using RRF.
+    Return top 5 non-duplicate relevant chunks.
     """
     cleaned_query = clean_text(query)
-
     if not cleaned_query:
         return []
 
     total_vectors = collection.count()
-
     if total_vectors == 0:
         return []
 
+    # 1. Query Expansion
+    expanded_query = expand_query(cleaned_query)
+
+    # 2. Vector Search (using original query embedding for semantic match)
     query_embedding = get_embedding_model().encode([cleaned_query]).tolist()[0]
-    requested_results = min(max(limit, 8), total_vectors)
-
-    docs = []
-    metas = []
-    distances = []
-    seen_vector_ids = set()
-
+    
+    # Fetch top 50 from vector search to have a rich pool for fusion
+    requested_results = min(50, total_vectors)
+    
+    chroma_candidates = []
+    seen_ids = set()
     for value in user_id_values(user_id):
         current_results = collection.query(
             query_embeddings=[query_embedding],
@@ -231,81 +313,108 @@ def search_documents(user_id, query, limit=8):
             where={
                 "user_id": value
             },
-            include=["documents", "metadatas", "distances"]
+            include=["documents", "metadatas", "distances", "embeddings"]
         )
 
         current_docs = current_results.get("documents", [[]])[0]
         current_metas = current_results.get("metadatas", [[]])[0]
         current_distances = current_results.get("distances", [[]])[0]
         current_ids = current_results.get("ids", [[]])[0]
+        current_embs = current_results.get("embeddings", [[]])[0] if "embeddings" in current_results else [None] * len(current_docs)
 
         for index, doc in enumerate(current_docs):
             vector_id = current_ids[index] if index < len(current_ids) else None
-
-            if vector_id and vector_id in seen_vector_ids:
+            if not vector_id or vector_id in seen_ids:
                 continue
 
-            if vector_id:
-                seen_vector_ids.add(vector_id)
+            seen_ids.add(vector_id)
+            chroma_candidates.append({
+                "id": vector_id,
+                "doc": doc,
+                "meta": current_metas[index] if index < len(current_metas) else {},
+                "distance": current_distances[index] if index < len(current_distances) else None,
+                "embedding": current_embs[index] if index < len(current_embs) else None
+            })
 
-            docs.append(doc)
-            metas.append(current_metas[index] if index < len(current_metas) else {})
-            distances.append(current_distances[index] if index < len(current_distances) else None)
+    # 3. Lexical Search (BM25 using expanded query)
+    user_chunks = get_user_chunks(user_id, include=["documents", "metadatas", "embeddings"])
+    all_docs = user_chunks.get("documents", [])
+    all_metas = user_chunks.get("metadatas", [])
+    all_ids = user_chunks.get("ids", [])
+    all_embeddings = user_chunks.get("embeddings", [])
 
-    if not docs:
-        return []
+    bm25_scores = calculate_bm25_scores(expanded_query, all_docs)
+    
+    bm25_candidates = []
+    for idx in range(len(all_docs)):
+        score = bm25_scores[idx]
+        if score > 0:
+            bm25_candidates.append({
+                "id": all_ids[idx],
+                "doc": all_docs[idx],
+                "meta": all_metas[idx],
+                "bm25_score": score,
+                "embedding": all_embeddings[idx] if idx < len(all_embeddings) else None
+            })
+    
+    bm25_candidates = sorted(bm25_candidates, key=lambda x: x["bm25_score"], reverse=True)
 
-    query_text = cleaned_query.lower()
-    query_tokens = tokenize(query_text)
-    candidates = {}
-    seen = set()
+    # 4. Reciprocal Rank Fusion (RRF)
+    rrf_scores = {}
+    k = 60
 
-    for index, (doc, meta) in enumerate(zip(docs, metas)):
-        if not doc:
+    # Rank chroma results
+    for rank_idx, cand in enumerate(chroma_candidates):
+        rrf_scores[cand["id"]] = rrf_scores.get(cand["id"], 0.0) + (1.0 / (k + (rank_idx + 1)))
+
+    # Rank BM25 results
+    for rank_idx, cand in enumerate(bm25_candidates):
+        rrf_scores[cand["id"]] = rrf_scores.get(cand["id"], 0.0) + (1.0 / (k + (rank_idx + 1)))
+
+    # Combine candidates
+    id_to_cand = {}
+    for cand in chroma_candidates:
+        id_to_cand[cand["id"]] = cand
+    for cand in bm25_candidates:
+        if cand["id"] not in id_to_cand:
+            id_to_cand[cand["id"]] = cand
+
+    combined_candidates = []
+    for cid, rrf_score in rrf_scores.items():
+        cand = id_to_cand[cid]
+        dist = cand.get("distance")
+        
+        # Performance: Reuse stored embedding to calculate distance for BM25 candidates that weren't in Chroma results
+        if dist is None and cand.get("embedding") is not None:
+            dist = sum((x - y) ** 2 for x, y in zip(query_embedding, cand["embedding"]))
+        elif dist is None:
+            dist = 1.0  # Safe fallback if embedding is missing
+            
+        combined_candidates.append({
+            "id": cid,
+            "doc": cand["doc"],
+            "meta": cand["meta"],
+            "rrf_score": rrf_score,
+            "distance": dist
+        })
+
+    # Sort by RRF score descending
+    combined_candidates = sorted(combined_candidates, key=lambda x: x["rrf_score"], reverse=True)
+
+    # 5. Remove duplicate chunks
+    unique_candidates = []
+    seen_contents = set()
+    for cand in combined_candidates:
+        normalized_content = " ".join(cand["doc"].split()).lower()
+        if normalized_content in seen_contents:
             continue
+        seen_contents.add(normalized_content)
+        unique_candidates.append(cand)
 
-        filename = meta.get("filename", "Unknown document")
-        chunk_index = meta.get("chunk_index", index)
-        key = (filename, chunk_index, doc[:120])
-
-        if key in seen:
-            continue
-
-        seen.add(key)
-        distance = distances[index] if index < len(distances) else None
-        vector_score = 0
-
-        if isinstance(distance, float):
-            vector_score = max(0, 3 - distance)
-
-        combined_score = vector_score + lexical_score(query_tokens, query_text, doc, meta)
-        candidates[key] = (combined_score, doc, meta, distance)
-
-    user_chunks = get_user_chunks(user_id)
-
-    for doc, meta in zip(user_chunks.get("documents", []), user_chunks.get("metadatas", [])):
-        if not doc:
-            continue
-
-        filename = meta.get("filename", "Unknown document")
-        chunk_index = meta.get("chunk_index", 0)
-        key = (filename, chunk_index, doc[:120])
-        lex_score = lexical_score(query_tokens, query_text, doc, meta)
-
-        if lex_score <= 0:
-            continue
-
-        if key not in candidates or candidates[key][0] < lex_score:
-            candidates[key] = (lex_score, doc, meta, None)
-
-    ranked_candidates = sorted(
-        candidates.values(),
-        key=lambda item: item[0],
-        reverse=True
-    )
-
-    # Return structured source objects instead of formatted strings
-    return [
-        build_source_object(doc, meta, distance)
-        for _, doc, meta, distance in ranked_candidates[:limit]
+    # 6. Keep only top limit (5) and build source objects
+    final_sources = [
+        build_source_object(cand["doc"], cand["meta"], cand["distance"])
+        for cand in unique_candidates[:limit]
     ]
+
+    return final_sources

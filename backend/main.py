@@ -1,9 +1,8 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 
-from database.db import engine, ensure_user_profile_picture_column
+from database.db import engine, ensure_user_profile_picture_column, ensure_history_columns
 from models.user import User
 from models.document import Document
 from api.settings_api import router as settings_router
@@ -39,6 +38,7 @@ User.metadata.create_all(bind=engine)
 Document.metadata.create_all(bind=engine)
 History.metadata.create_all(bind=engine)
 ensure_user_profile_picture_column()
+ensure_history_columns()
 PasswordResetOTP.metadata.create_all(bind=engine)
 Chat.metadata.create_all(bind=engine)
 ChatMessage.metadata.create_all(bind=engine)
