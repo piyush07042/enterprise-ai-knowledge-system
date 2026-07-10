@@ -1,51 +1,53 @@
-
 import os
 from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv()
-
-API_KEY = os.getenv("GROQ_API_KEY")
-print("GROQ KEY FOUND:", bool(API_KEY))
 
 client = None
 
-if API_KEY:
-    client = Groq(api_key=API_KEY)
+api_key = os.getenv("GROQ_API_KEY")
+
+if api_key:
+    client = Groq(api_key=api_key)
 
 
-def generate_answer(context, question):
+def generate_answer(context: str, question: str):
+    """
+    Generate answer using Groq.
+    Falls back to returning retrieved context if Groq is unavailable.
+    """
+
+    if not context.strip():
+        return "No relevant information found."
+
     if client is None:
-        raise Exception("GROQ_API_KEY missing in backend/.env")
+        return context
 
-    prompt = f"""
-You are an AI assistant for an enterprise knowledge system.
+    try:
+        prompt = f"""
+You are an Enterprise AI Knowledge Assistant.
 
-Use ONLY the document context to answer. The context may contain chunks from
-multiple documents. Each chunk includes its source filename.
+Answer ONLY from the provided context.
 
 Context:
 {context}
 
 Question:
 {question}
-
-Rules:
-- Answer in simple English
-- Use all relevant chunks, not just the first one
-- Mention important details from different documents when they help answer the question
-- Keep the answer concise
-- If answer not found, say: Not found in document
 """
 
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        model="llama-3.3-70b-versatile"
-    )
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.2,
+            max_tokens=1024
+        )
 
-    return chat_completion.choices[0].message.content
+        return response.choices[0].message.content
+
+    except Exception as e:
+        print("LLM Error:", e)
+        return context

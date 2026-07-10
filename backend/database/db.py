@@ -48,3 +48,21 @@ def ensure_history_columns():
             connection.execute(text("ALTER TABLE history ADD COLUMN confidence REAL"))
         if "retrieved_docs" not in columns:
             connection.execute(text("ALTER TABLE history ADD COLUMN retrieved_docs TEXT"))
+
+inspector = inspect(engine)
+
+columns = [
+    col["name"]
+    for col in inspector.get_columns("users")
+]
+
+if "role" not in columns:
+    with engine.connect() as conn:
+        conn.execute(
+            text(
+                "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'"
+            )
+        )
+        conn.commit()
+
+        print("role column added.")

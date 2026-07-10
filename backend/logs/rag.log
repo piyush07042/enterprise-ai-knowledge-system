@@ -1,0 +1,3 @@
+[2026-07-08 14:39:04] Query: "describe my skills" | Latency: 12.6118s | Confidence: 56.5% | Retrieved: [Offer_Letter_895692_1388084.pdf, Data Engineering Virtual Internship.pdf, resume.pdf]
+[2026-07-08 16:07:08] Query: "What is Leave Policy?" | Latency: 44.1472s | Confidence: 36.2% | Retrieved: [Data Engineering Virtual Internship.pdf, CD-U-2-One-Shot-Notes (1).pdf]
+[2026-07-08 16:07:10] Query: "Summarize my uploaded documents." | Latency: 0.0472s | Confidence: N/A | Retrieved: [resume.pdf, Data Engineering Virtual Internship.pdf, Offer_Letter_895692_1388084.pdf, CD-U-2-One-Shot-Notes (1).pdf, CD-U-2-One-Shot-Notes (1).pdf, CD-U-2-One-Shot-Notes (1).pdf, CD-U-2-One-Shot-Notes (1).pdf]
