@@ -22,15 +22,19 @@ def sync_user_upload_documents(user, db, base_folder="uploads", index_missing=Tr
     user_folder = Path(base_folder) / user.email
 
     if not user_folder.exists():
+        db.query(Document).filter(Document.user_id == user.id).delete()
+        db.flush()
         return []
 
     synced_documents = []
+    disk_filenames = set()
 
     for file_path in sorted(user_folder.iterdir()):
         if not file_path.is_file():
             continue
 
         filename = sanitize_filename(file_path.name)
+        disk_filenames.add(filename)
         safe_file_path = resolve_user_upload_path(base_folder, user.email, filename)
 
         document = db.query(Document).filter(
@@ -59,5 +63,13 @@ def sync_user_upload_documents(user, db, base_folder="uploads", index_missing=Tr
                 store_document(user.id, filename, text)
 
         synced_documents.append(document)
+
+    # Sync deletions (delete from DB if not on disk)
+    db_documents = db.query(Document).filter(Document.user_id == user.id).all()
+    for db_doc in db_documents:
+        if db_doc.filename not in disk_filenames:
+            delete_document_chunks(user.id, db_doc.filename)
+            db.delete(db_doc)
+    db.flush()
 
     return synced_documents

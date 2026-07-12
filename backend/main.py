@@ -16,7 +16,6 @@ from api.history_api import router as history_router
 from models.password_otp import PasswordResetOTP
 from api.password_api import router as password_router
 from models.chat import Chat, ChatMessage
-from api.chat_api import router as chat_router
 from api.admin_api import router as admin_router
 
 app = FastAPI(
@@ -61,4 +60,3 @@ app.include_router(history_router)
 app.include_router(password_router)
 app.include_router(chat_router, tags=["Chat"])
 app.include_router(admin_router)
-app.include_router(chat_router)

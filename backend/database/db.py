@@ -48,6 +48,8 @@ def ensure_history_columns():
             connection.execute(text("ALTER TABLE history ADD COLUMN confidence REAL"))
         if "retrieved_docs" not in columns:
             connection.execute(text("ALTER TABLE history ADD COLUMN retrieved_docs TEXT"))
+        if "created_at" not in columns:
+            connection.execute(text("ALTER TABLE history ADD COLUMN created_at TIMESTAMP"))
 
 inspector = inspect(engine)
 

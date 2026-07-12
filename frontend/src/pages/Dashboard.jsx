@@ -22,6 +22,8 @@ export default function Dashboard() {
     avg_confidence: 0,
     most_searched_doc: "N/A",
     top_keyword: "N/A",
+    most_active_day: "N/A",
+    total_queries: 0,
   });
 
   useEffect(() => {
@@ -138,6 +140,10 @@ export default function Dashboard() {
           res.data.most_searched_doc || "N/A",
         top_keyword:
           res.data.top_keyword || "N/A",
+        most_active_day:
+          res.data.most_active_day || "N/A",
+        total_queries:
+          Number(res.data.total_queries || 0),
       }));
     } catch (err) {
       console.log(err);
@@ -321,6 +327,24 @@ export default function Dashboard() {
             <h3>Top Keyword</h3>
             <p>
               {stats.top_keyword}
+            </p>
+          </div>
+
+        </div>
+
+        <div className="stats">
+
+          <div className="card">
+            <h3>Most Active Day</h3>
+            <p className="stat-number" style={{ fontSize: "36px", marginTop: "15px" }}>
+              {stats.most_active_day}
+            </p>
+          </div>
+
+          <div className="card">
+            <h3>Total Queries</h3>
+            <p className="stat-number">
+              {stats.total_queries}
             </p>
           </div>
 

@@ -1,9 +1,11 @@
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./UploadPage.css";
 
 export default function UploadPage() {
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -44,6 +46,9 @@ export default function UploadPage() {
 
   return (
     <div className="upload-page">
+      <button className="upload-back" onClick={() => navigate("/dashboard")}>
+        ← Back
+      </button>
       <div className="upload-card">
         <h1>Upload Documents</h1>
         <p>Add files to your Enterprise AI knowledge base</p>
