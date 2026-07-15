@@ -7,3 +7,7 @@
 [2026-07-12 20:46:51] Query: "resume" | Latency: 0.1168s | Confidence: 42.0% | Retrieved: [Offer_Letter_895692_1388084.pdf, Data Engineering Virtual Internship.pdf, resume.pdf]
 [2026-07-12 20:47:09] Query: "data engineering" | Latency: 0.1155s | Confidence: 44.5% | Retrieved: [Offer_Letter_895692_1388084.pdf, Data Engineering Virtual Internship.pdf, resume.pdf]
 [2026-07-12 20:50:23] Query: "hello" | Latency: 10.9013s | Confidence: 48.8% | Retrieved: [Data Engineering Virtual Internship.pdf, resume.pdf, Offer_Letter_895692_1388084.pdf]
+[2026-07-12 20:55:50] Query: "hello" | Latency: 1.2076s | Confidence: 35.8% | Retrieved: [Data Engineering Virtual Internship.pdf, resume.pdf, Offer_Letter_895692_1388084.pdf]
+[2026-07-12 20:56:08] Query: "describe me resume" | Latency: 1.4320s | Confidence: 39.3% | Retrieved: [resume.pdf, Offer_Letter_895692_1388084.pdf]
+[2026-07-12 21:01:25] Query: "data engg" | Latency: 1.3506s | Confidence: 49.9% | Retrieved: [Data Engineering Virtual Internship.pdf, resume.pdf, Offer_Letter_895692_1388084.pdf]
+[2026-07-12 21:50:40] Query: "What is Leave Policy?" | Latency: 1.3161s | Confidence: 46.0% | Retrieved: [Data Engineering Virtual Internship.pdf, resume.pdf, Offer_Letter_895692_1388084.pdf]
