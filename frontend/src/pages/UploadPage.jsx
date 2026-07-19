@@ -45,51 +45,60 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="upload-page">
-      <button className="upload-back" onClick={() => navigate("/dashboard")}>
-        ← Back
-      </button>
-      <div className="upload-card">
-        <h1>Upload Documents</h1>
-        <p>Add files to your Enterprise AI knowledge base</p>
+    <div className="page-container">
+      <header className="page-topbar">
+        <button className="page-back-btn" onClick={() => navigate("/dashboard")}>
+          ← Back
+        </button>
+        <div className="page-title-group">
+          <h1>Upload Documents</h1>
+          <p>Add files to your Enterprise AI knowledge base</p>
+        </div>
+      </header>
 
-        <div className="drop-zone">
-          <input
-            type="file"
-            id="fileInput"
-            onChange={handleFileChange}
-            hidden
-          />
+      <main className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="upload-card">
+          <h1>Upload Documents</h1>
+          <p>Drag and drop your files here, or click to browse</p>
 
-          <label htmlFor="fileInput" className="browse-btn">
-            Browse Files
-          </label>
+          <div className="drop-zone">
+            <input
+              type="file"
+              id="fileInput"
+              onChange={handleFileChange}
+              hidden
+            />
 
-          {file && (
-            <div className="selected-file">
-              Selected: {file.name}
+            <label htmlFor="fileInput" className="browse-btn">
+              Browse Files
+            </label>
+
+            {file && (
+              <div className="selected-file">
+                Selected: {file.name}
+              </div>
+            )}
+          </div>
+
+          <div className="supported">
+            Supported formats: PDF, DOCX, TXT
+          </div>
+
+          <button
+            className="upload-btn"
+            onClick={handleUpload}
+            disabled={uploading}
+          >
+            {uploading ? "Uploading..." : "Upload File"}
+          </button>
+
+          {message && (
+            <div className="upload-message">
+              {message}
             </div>
           )}
         </div>
-
-        <div className="supported">
-          Supported: PDF, DOCX, TXT
-        </div>
-
-        <button
-          className="upload-btn"
-          onClick={handleUpload}
-          disabled={uploading}
-        >
-          {uploading ? "Uploading..." : "Upload"}
-        </button>
-
-        {message && (
-          <div className="upload-message">
-            {message}
-          </div>
-        )}
-      </div>
+      </main>
     </div>
   );
 }

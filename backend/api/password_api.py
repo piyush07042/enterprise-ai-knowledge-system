@@ -86,8 +86,10 @@ def forgot_password(data: dict, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # do not reveal whether email exists
-        return {"message": "If the email exists, an OTP was sent"}
+        raise HTTPException(
+            status_code=400,
+            detail="Email address not registered"
+        )
 
     otp = _generate_otp()
     expires = datetime.utcnow() + timedelta(minutes=5)
@@ -104,7 +106,7 @@ def forgot_password(data: dict, db: Session = Depends(get_db)):
     body = f"Your password reset code is: {otp}\nIt expires in 5 minutes."
     _send_email(email, subject, body)
 
-    return {"message": "If the email exists, an OTP was sent"}
+    return {"message": "OTP sent successfully"}
 
 
 @router.post("/verify-otp")

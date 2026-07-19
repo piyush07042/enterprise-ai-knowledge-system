@@ -1,70 +1,92 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import LoadingScreen from "../components/LoadingScreen";
-import "./SettingsPage.css";
+import "./LoginPage.css"; // Reuse the landing page styles
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault();
     setMessage("");
-    if (!email) {
-      setMessage("Email is required");
+    setError("");
+
+    if (!email.trim()) {
+      setError("Email is required");
       return;
     }
 
     try {
       setLoading(true);
       const res = await api.post("/forgot-password", { email });
-      setMessage(res.data.message || "If the email exists, an OTP was sent.");
       // move to verify view, keep email in state
       navigate("/verify-otp", { state: { email } });
     } catch (err) {
-      setMessage(err.response?.data?.detail || "Failed to send OTP");
+      setError(err.response?.data?.detail || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <LoadingScreen />;
-
   return (
-    <div className="settings-page">
-      <div className="settings-shell">
-        <div className="settings-topbar">
-          <button className="settings-back" onClick={() => navigate(-1)}>
-            ← Back
-          </button>
-          <div>
-            <p className="settings-eyebrow">Password</p>
-            <h1>Forgot Password</h1>
-          </div>
+    <div className="lp-root">
+      <div className="lp-orb lp-orb-a"></div>
+      <div className="lp-orb lp-orb-b"></div>
+
+      <aside className="lp-side">
+        <div className="lp-brand">
+          <div className="lp-logo">EA</div>
+          <p className="lp-eyebrow">Enterprise AI Knowledge System</p>
+          <h1>Password Recovery.</h1>
+          <p className="lp-tag">
+            We will send a secure One-Time Password to your email to verify your identity.
+          </p>
         </div>
+      </aside>
 
-        {message && <div className="settings-alert">{message}</div>}
+      <main className="lp-main">
+        <div className="lp-card">
+          <div className="lp-card-header">
+            <p className="lp-card-kicker">Security</p>
+            <h2>Forgot Password</h2>
+            <p>Enter your email to receive an OTP.</p>
+          </div>
 
-        <div className="settings-grid">
-          <section className="settings-card settings-form-card">
-            <div className="settings-field">
-              <label>Email</label>
+          {error && <div className="lp-alert">{error}</div>}
+          {message && <div className="lp-alert" style={{background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.2)'}}>{message}</div>}
+
+          <form onSubmit={submit}>
+            <div className="input-wrap">
+              <label>Email address</label>
               <input
+                type="email"
+                placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                autoComplete="email"
               />
             </div>
 
-            <button className="save-btn" onClick={submit}>
-              Send OTP
+            <div className="lp-row">
+              <button
+                type="button"
+                className="lp-link-btn"
+                onClick={() => navigate("/login")}
+              >
+                ← Back to Login
+              </button>
+            </div>
+
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? "Sending..." : "Send OTP"}
             </button>
-          </section>
+          </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

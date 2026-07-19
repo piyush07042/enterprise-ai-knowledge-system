@@ -60,22 +60,21 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="search-page">
-      {/* Top bar */}
-      <header className="search-topbar">
-        <button className="search-back" onClick={() => navigate("/dashboard")}>
+    <div className="page-container">
+      <header className="page-topbar">
+        <button className="page-back-btn" onClick={() => navigate("/dashboard")}>
           ← Back
         </button>
-        <span className="search-topbar-title">AI Search</span>
-        <span className="search-topbar-sub">Powered by RAG + Groq LLM</span>
+        <div className="page-title-group">
+          <h1>AI Search</h1>
+          <p>Powered by RAG + Groq LLM</p>
+        </div>
       </header>
 
-      {/* Main content */}
-      <div className="search-content">
-        {/* Hero */}
-        <div className="search-hero">
-          <h1>Ask Your Knowledge Base</h1>
-          <p>Get precise answers from your uploaded documents with source citations</p>
+      <main className="page-content">
+        <div className="search-hero" style={{ textAlign: "center", marginBottom: "40px" }}>
+          <h1 style={{ fontSize: "36px", margin: "0 0 10px 0" }}>Ask Your Knowledge Base</h1>
+          <p style={{ color: "#94a3b8", fontSize: "16px" }}>Get precise answers from your uploaded documents with source citations</p>
         </div>
 
         {/* Search form */}
@@ -171,7 +170,7 @@ export default function SearchPage() {
             <small>Upload documents first, then ask questions</small>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

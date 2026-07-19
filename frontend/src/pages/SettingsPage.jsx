@@ -181,20 +181,20 @@ export default function SettingsPage() {
   const avatarSource = selectedProfilePreview || profilePictureSrc;
 
   return (
-    <div className="settings-page">
-      <div className="settings-shell">
-        <div className="settings-topbar">
-          <button className="settings-back" onClick={() => navigate("/dashboard")}>
-            ← Back
-          </button>
-
-          <div>
-            <p className="settings-eyebrow">Account</p>
-            <h1>Settings</h1>
-          </div>
+    <div className="page-container">
+      <header className="page-topbar">
+        <button className="page-back-btn" onClick={() => navigate("/dashboard")}>
+          ← Back
+        </button>
+        <div className="page-title-group">
+          <h1>Account Settings</h1>
+          <p>Update your profile picture and personal details</p>
         </div>
+      </header>
 
-        {message && <div className="settings-alert">{message}</div>}
+      <main className="page-content">
+        <div className="settings-shell">
+          {message && <div className="settings-alert">{message}</div>}
 
         <div className="settings-grid">
           <section className="settings-card settings-profile-card">
@@ -274,7 +274,8 @@ export default function SettingsPage() {
             </button>
           </section>
         </div>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

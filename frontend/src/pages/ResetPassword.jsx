@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
-import LoadingScreen from "../components/LoadingScreen";
-import "./SettingsPage.css";
+import "./LoginPage.css"; // Reuse the landing page styles
 
 export default function ResetPassword() {
   const nav = useNavigate();
@@ -12,8 +11,10 @@ export default function ResetPassword() {
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   const validateStrength = (p) => {
     if (p.length < 8) return false;
@@ -25,16 +26,18 @@ export default function ResetPassword() {
   const submit = async (e) => {
     e.preventDefault();
     setMessage("");
+    setError("");
+
     if (!reset_token) {
-      setMessage("Missing reset token. Start the flow again.");
+      setError("Missing reset token. Start the flow again.");
       return;
     }
     if (password !== confirm) {
-      setMessage("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
     if (!validateStrength(password)) {
-      setMessage("Password must be at least 8 chars and include letters and numbers");
+      setError("Password must be at least 8 chars and include letters and numbers");
       return;
     }
 
@@ -49,55 +52,87 @@ export default function ResetPassword() {
       // go to login
       setTimeout(() => nav("/login"), 1200);
     } catch (err) {
-      setMessage(err.response?.data?.detail || "Reset failed");
+      setError(err.response?.data?.detail || "Reset failed");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <LoadingScreen />;
-
   return (
-    <div className="settings-page">
-      <div className="settings-shell">
-        <div className="settings-topbar">
-          <button className="settings-back" onClick={() => nav(-1)}>
-            ← Back
-          </button>
-          <div>
-            <p className="settings-eyebrow">Password</p>
-            <h1>Reset Password</h1>
-          </div>
+    <div className="lp-root">
+      <div className="lp-orb lp-orb-a"></div>
+      <div className="lp-orb lp-orb-b"></div>
+
+      <aside className="lp-side">
+        <div className="lp-brand">
+          <div className="lp-logo">EA</div>
+          <p className="lp-eyebrow">Enterprise AI Knowledge System</p>
+          <h1>Secure your account.</h1>
+          <p className="lp-tag">
+            Choose a strong password to protect your knowledge assets.
+          </p>
         </div>
+      </aside>
 
-        {message && <div className="settings-alert">{message}</div>}
+      <main className="lp-main">
+        <div className="lp-card">
+          <div className="lp-card-header">
+            <p className="lp-card-kicker">Security</p>
+            <h2>Reset Password</h2>
+            <p>Enter your new password below.</p>
+          </div>
 
-        <div className="settings-grid">
-          <section className="settings-card settings-form-card">
-            <div className="settings-field">
+          {error && <div className="lp-alert">{error}</div>}
+          {message && <div className="lp-alert" style={{background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.2)'}}>{message}</div>}
+
+          <form onSubmit={submit}>
+            <div className="input-wrap password-wrap">
               <label>New password</label>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Must be at least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
               />
+
+              <button
+                type="button"
+                className="eye-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
             </div>
 
-            <div className="settings-field">
+            <div className="input-wrap password-wrap">
               <label>Confirm password</label>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Confirm your new password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
+                autoComplete="new-password"
               />
             </div>
 
-            <button className="save-btn" onClick={submit}>
-              Reset password
+            <div className="lp-row">
+              <button
+                type="button"
+                className="lp-link-btn"
+                onClick={() => nav("/login")}
+              >
+                ← Back to Login
+              </button>
+            </div>
+
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? "Resetting..." : "Reset password"}
             </button>
-          </section>
+          </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

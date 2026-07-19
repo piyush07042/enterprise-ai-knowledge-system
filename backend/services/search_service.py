@@ -271,8 +271,26 @@ Current Question:
         avg_confidence = sum(valid_scores) / len(valid_scores) if valid_scores else 0.0
 
         # Strip internal 'text' field — safe for API serialisation
-        api_sources = _strip_text_field(sources[:5])
-        retrieved_filenames = list({s["filename"] for s in sources[:5]})
+        all_api_sources = _strip_text_field(sources[:5])
+        
+        # Only return sources that the LLM actually used in its answer
+        api_sources = []
+        retrieved_filenames = []
+        
+        if "No relevant information found" not in answer:
+            for s in all_api_sources:
+                if s["filename"] in answer:
+                    api_sources.append(s)
+                    if s["filename"] not in retrieved_filenames:
+                        retrieved_filenames.append(s["filename"])
+            
+            # Fallback: if no citations found in text but we have an answer, return all
+            if not api_sources:
+                api_sources = all_api_sources
+                retrieved_filenames = list({s["filename"] for s in sources[:5]})
+        else:
+            api_sources = []
+            retrieved_filenames = []
 
     total_time = time.time() - start_total
 

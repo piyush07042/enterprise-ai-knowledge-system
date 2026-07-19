@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
-import LoadingScreen from "../components/LoadingScreen";
-import "./SettingsPage.css";
+import "./LoginPage.css"; // Reuse the landing page styles
 
 export default function VerifyOTP() {
   const nav = useNavigate();
@@ -13,12 +12,15 @@ export default function VerifyOTP() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   const submit = async (e) => {
     e.preventDefault();
     setMessage("");
-    if (!email || !otp) {
-      setMessage("Email and OTP required");
+    setError("");
+
+    if (!email.trim() || !otp.trim()) {
+      setError("Email and OTP required");
       return;
     }
 
@@ -33,47 +35,77 @@ export default function VerifyOTP() {
         setMessage("OTP verified");
       }
     } catch (err) {
-      setMessage(err.response?.data?.detail || "OTP verification failed");
+      setError(err.response?.data?.detail || "OTP verification failed");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <LoadingScreen />;
-
   return (
-    <div className="settings-page">
-      <div className="settings-shell">
-        <div className="settings-topbar">
-          <button className="settings-back" onClick={() => nav(-1)}>
-            ← Back
-          </button>
-          <div>
-            <p className="settings-eyebrow">Password</p>
-            <h1>Verify OTP</h1>
+    <div className="lp-root">
+      <div className="lp-orb lp-orb-a"></div>
+      <div className="lp-orb lp-orb-b"></div>
+
+      <aside className="lp-side">
+        <div className="lp-brand">
+          <div className="lp-logo">EA</div>
+          <p className="lp-eyebrow">Enterprise AI Knowledge System</p>
+          <h1>Verify OTP.</h1>
+          <p className="lp-tag">
+            Enter the 6-digit code sent to your email to verify your identity.
+          </p>
+        </div>
+      </aside>
+
+      <main className="lp-main">
+        <div className="lp-card">
+          <div className="lp-card-header">
+            <p className="lp-card-kicker">Security</p>
+            <h2>Verify Identity</h2>
+            <p>Enter your email and the verification code.</p>
           </div>
-        </div>
 
-        {message && <div className="settings-alert">{message}</div>}
+          {error && <div className="lp-alert">{error}</div>}
+          {message && <div className="lp-alert" style={{background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.2)'}}>{message}</div>}
 
-        <div className="settings-grid">
-          <section className="settings-card settings-form-card">
-            <div className="settings-field">
-              <label>Email</label>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} />
+          <form onSubmit={submit}>
+            <div className="input-wrap">
+              <label>Email address</label>
+              <input
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
             </div>
 
-            <div className="settings-field">
-              <label>OTP</label>
-              <input value={otp} onChange={(e) => setOtp(e.target.value)} />
+            <div className="input-wrap">
+              <label>One-Time Password (OTP)</label>
+              <input
+                type="text"
+                placeholder="123456"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+              />
             </div>
 
-            <button className="save-btn" onClick={submit}>
-              Verify OTP
+            <div className="lp-row">
+              <button
+                type="button"
+                className="lp-link-btn"
+                onClick={() => nav("/login")}
+              >
+                ← Back to Login
+              </button>
+            </div>
+
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? "Verifying..." : "Verify OTP"}
             </button>
-          </section>
+          </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

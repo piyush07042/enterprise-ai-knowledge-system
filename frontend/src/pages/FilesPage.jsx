@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import "./FilesPage.css";
 
 export default function FilesPage() {
   const [documents, setDocuments] = useState([]);
@@ -88,117 +89,63 @@ export default function FilesPage() {
   };
 
   return (
-    <div
-      style={{
-        padding: "30px",
-        background: "#081226",
-        color: "white",
-        minHeight: "100vh",
-      }}
-    >
-      <button
-        onClick={() => navigate("/dashboard")}
-        style={{
-          padding: "10px 20px",
-          marginBottom: "20px",
-          borderRadius: "10px",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        ← Back
-      </button>
+    <div className="page-container">
+      <header className="page-topbar">
+        <button className="page-back-btn" onClick={() => navigate("/dashboard")}>
+          ← Back
+        </button>
+        <div className="page-title-group">
+          <h1>Your Files</h1>
+          <p>Manage and preview your uploaded documents</p>
+        </div>
+      </header>
 
-      <h1>Your Files</h1>
-
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          marginTop: "20px",
-        }}
-      >
-        {/* LEFT SIDE */}
-        <div
-          style={{
-            width: "35%",
-          }}
-        >
-          {documents.length === 0 ? (
-            <p>No files uploaded</p>
-          ) : (
-            documents.map((doc) => (
-              <div
-                key={doc.id}
-                style={{
-                  background: "#1e293b",
-                  padding: "15px",
-                  borderRadius: "12px",
-                  marginBottom: "12px",
-                }}
-              >
-                <div
-                  onClick={() => previewFile(doc.filename)}
-                  style={{
-                    cursor: "pointer",
-                    marginBottom: "10px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  📄 {doc.filename}
-                </div>
-
-                <button
-                  onClick={() => deleteFile(doc.filename)}
-                  style={{
-                    background: "red",
-                    color: "white",
-                    border: "none",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Delete
-                </button>
+      <main className="page-content">
+        <div className="files-grid-container">
+          {/* LEFT SIDE */}
+          <div className="files-list-section">
+            {documents.length === 0 ? (
+              <div className="files-empty-state">
+                <p>No files uploaded yet.</p>
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              documents.map((doc) => (
+                <div key={doc.id} className="file-card">
+                  <div
+                    className="file-card-title"
+                    onClick={() => previewFile(doc.filename)}
+                  >
+                    📄 {doc.filename}
+                  </div>
+                  <div className="file-card-actions">
+                    <button
+                      className="file-delete-btn"
+                      onClick={() => deleteFile(doc.filename)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
 
-        {/* RIGHT SIDE PREVIEW */}
-        <div
-          style={{
-            width: "65%",
-            background: "#1e293b",
-            borderRadius: "12px",
-            padding: "10px",
-            minHeight: "700px",
-          }}
-        >
-          {selectedFile ? (
-            <iframe
-              src={selectedFile}
-              title="PDF Preview"
-              width="100%"
-              height="700px"
-              style={{
-                border: "none",
-                borderRadius: "12px",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                padding: "30px",
-                color: "#94a3b8",
-              }}
-            >
-              Select a file to preview
-            </div>
-          )}
+          {/* RIGHT SIDE PREVIEW */}
+          <div className="files-preview-section">
+            {selectedFile ? (
+              <iframe
+                src={selectedFile}
+                title="PDF Preview"
+                className="file-preview-iframe"
+              />
+            ) : (
+              <div className="file-preview-placeholder">
+                <p>Select a file to preview</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

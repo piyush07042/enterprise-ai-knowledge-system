@@ -208,7 +208,8 @@ def expand_query(query):
         return query
     try:
         prompt = f"""You are a search query optimizer for an enterprise search system.
-Expand the following user query with 3-5 relevant keywords, synonyms, and related search terms to improve retrieval.
+Extract the core entities and add 1-2 STRICT synonyms for the following user query to improve retrieval. 
+If the query is a person's name, a specific file name, or a specific title, DO NOT add any extra terms, do not guess their identity, and do not add generic industry words.
 Do not return any explanations, punctuation, or preamble. Return only the space-separated list of keywords.
 
 Query: {query}
@@ -415,6 +416,16 @@ def search_documents(user_id, query, limit=5):
     final_sources = [
         build_source_object(cand["doc"], cand["meta"], cand["distance"])
         for cand in unique_candidates[:limit]
+    ]
+
+    # 7. Filter out low-relevance chunks that are not meaningfully related
+    #    to the query. Without this, every query returns top-5 even when
+    #    none of the user's documents are relevant (e.g. asking about
+    #    "Leave Policy" when only resumes/certificates are uploaded).
+    MIN_RELEVANCE_SCORE = 0.38
+    final_sources = [
+        s for s in final_sources
+        if s["score"] is not None and s["score"] >= MIN_RELEVANCE_SCORE
     ]
 
     return final_sources
